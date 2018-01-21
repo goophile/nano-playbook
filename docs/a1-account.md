@@ -34,7 +34,9 @@ The Raiblocks seed is the string you get when clicking `Backup wallet seed` in t
 
 The ED25519 seed is generated from the RaiBlocks seed. In the ed25519 workflow, different implementations may use different parts as the private key. To avoid confusion, let's use the terms `ed25519 seed`, `signing key`, and `private key` to refer the same thing. And `verifying key` and `public key` are also the same thing.
 
-To generate the signing key, the RaiBlocks seed concatenated with a 4-bytes index is hashed with blake2b.
+To generate the signing key, the RaiBlocks seed concatenated with a 4-bytes index is hashed with blake2b (in the official wallet).
+
+In fact, if you don't rely on the official wallet software, you can destroy the RaiBlocks seed and only keep the signing key. It's the signing/verifying key that really matters when you send/receive money. You can use the RaiBlocks seed as the signing key, and you can even hash it with anything else, such as "dog", "cat", to generate the signing key.
 
 Please note that, after concatenating with zero-valued binary data, the hash of a string will change, and the number of zeros also matters.
 
