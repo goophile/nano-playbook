@@ -30,7 +30,7 @@ The term `seed` may have two meanings, the `RaiBlocks seed` or the `ED25519 seed
 
 Both seeds should be kept in secret and never sent to others.
 
-The Raiblocks seed is the string you get when clicking `Backup wallet seed` in the wallet. It's a 64-characters hex string, and contains 32 bytes of binary data. It's randomly generated when you first open your wallet software.
+The Raiblocks seed is the string you get when clicking `Backup wallet seed` in the wallet. It's a 64-characters hex string, and contains 32 bytes of binary data. It's randomly generated when you first open your wallet software. You can also generate it with some other random number generator.
 
 The ED25519 seed is generated from the RaiBlocks seed. In the ed25519 workflow, different implementations may use different parts as the private key. To avoid confusion, let's use the terms `ed25519 seed`, `signing key`, and `private key` to refer the same thing. And `verifying key` and `public key` are also the same thing.
 
@@ -58,7 +58,7 @@ According to Colin LeMahieu's note([Version 7.3.0 Released](https://groups.googl
 
 There is also a checksum mechanism in the address. The verifying key is hashed to 5-bytes data with blake2b, and then the data is reversed byte by byte. The reversed data is also encoded to base32, producing a 8-characters string.
 
-The prefix "xrb_", concatenated with the base32 encoded verifying key, and the base32 encoded checksum, has a total length of 64 characters.
+The prefix "xrb_", concatenated with the base32 encoded verifying key, and the base32 encoded checksum, has a total length of 64 characters. That is the RaiBlocks address.
 
-To get the verifying key, we can also slice up the address, and decode the key part with base32 alphabet and remove the heading 4-bits zeros.
+To get the verifying key, we can slice up the address, and decode the key part with base32 alphabet and remove the heading 4-bits zeros.
 
