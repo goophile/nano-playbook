@@ -51,3 +51,8 @@ print(receive_blk.calculate_hash().hex().upper())
 open_account = Account(address=open_blk.account)
 print(open_account.signature_valid(open_blk.hash, open_blk.signature))
 
+print(open_blk.work_valid())
+print(send_blk.work_valid())
+print(receive_blk.work_valid())
+
+print(open_blk.generate_work().hex())

@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 
 
+import os
 from pyblake2 import blake2b
 
 from .types_convert import *
 from .account import address_to_verifying_key, address_valid
+
+POW_THRESHOLD = bytes.fromhex('FFFFFFC000000000')
 
 
 class Block(object):
@@ -42,9 +45,6 @@ class Block(object):
         Calculate the hash of open block, return bytes.
         """
 
-        if self._source_bytes is None or self._representative_bytes is None or self._account_bytes is None:
-            raise Exception('can not calculate hash due to lack of fields')
-
         h = blake2b(digest_size=32)
         h.update(self._source_bytes)
         h.update(self._representative_bytes)
@@ -55,9 +55,6 @@ class Block(object):
         """
         Calculate the hash of send block, return bytes.
         """
-
-        if self._previous_bytes is None or self._destination_bytes is None or self._balance_bytes is None:
-            raise Exception('can not calculate hash due to lack of fields')
 
         h = blake2b(digest_size=32)
         h.update(self._previous_bytes)
@@ -70,9 +67,6 @@ class Block(object):
         Calculate the hash of receive block, return bytes.
         """
 
-        if self._previous_bytes is None or self._source_bytes is None:
-            raise Exception('can not calculate hash due to lack of fields')
-
         h = blake2b(digest_size=32)
         h.update(self._previous_bytes)
         h.update(self._source_bytes)
@@ -82,9 +76,6 @@ class Block(object):
         """
         Calculate the hash of change block, return bytes.
         """
-
-        if self._previous_bytes is None or self._representative_bytes is None:
-            raise Exception('can not calculate hash due to lack of fields')
 
         h = blake2b(digest_size=32)
         h.update(self._previous_bytes)
@@ -131,6 +122,32 @@ class Block(object):
         self._account_bytes = self._to_verifying_key(self.account)
         self._representative_bytes = self._to_verifying_key(self.representative)
 
+        self._validate_fields()
+
+    def _validate_fields(self):
+        """
+        Validate block type and its fields.
+        """
+
+        if self.type == 'open':
+            if None in [self._source_bytes, self._representative_bytes, self._account_bytes]:
+                raise Exception('block lack of fields')
+
+        elif self.type == 'send':
+            if None in [self._previous_bytes, self._destination_bytes, self._balance_bytes]:
+                raise Exception('block lack of fields')
+
+        elif self.type == 'receive':
+            if None in [self._previous_bytes, self._source_bytes]:
+                raise Exception('block lack of fields')
+
+        elif self.type == 'change':
+            if None in [self._previous_bytes, self._representative_bytes]:
+                raise Exception('block lack of fields')
+
+        else:
+            raise ValueError('wrong block type: %s' % self.type)
+
     def calculate_hash(self):
         """
         Calculate block hash according to its type, return bytes.
@@ -151,5 +168,49 @@ class Block(object):
         elif self.type == 'change':
             return self._calculate_hash_change()
 
+    def work_valid(self):
+        self._prepare_block()
+
+        if self.type == 'open':
+            field_bytes = self._account_bytes
         else:
-            raise ValueError('block type not defined')
+            field_bytes = self._previous_bytes
+
+        work_bytes = to_bytes(self.work, 8)
+
+        return self._work_valid(work_bytes, field_bytes)
+
+    def _work_valid(self, work_bytes, field_bytes):
+        work_bytes = bytearray(work_bytes)
+        work_bytes.reverse()
+
+        h = blake2b(digest_size=8)
+        h.update(work_bytes)
+        h.update(field_bytes)
+
+        hash_bytes = bytearray(h.digest())
+        hash_bytes.reverse()
+
+        return hash_bytes > POW_THRESHOLD
+
+    def generate_work(self):
+        """
+        Compute a nonce such that the hash of the nonce concatenated with the field is below a threshold.
+        For open block, the field is the account. For other blocks, the field is the previous block.
+        """
+
+        self._prepare_block()
+        if self.type == 'open':
+            field_bytes = self._account_bytes
+        else:
+            field_bytes = self._previous_bytes
+
+        i = 0
+        work_bytes = os.urandom(8)
+        while self._work_valid(work_bytes, field_bytes) is False:
+            i += 1
+            work_bytes = os.urandom(8)
+
+        print('guess round for a valid work: %d' % i)
+        return work_bytes
+
