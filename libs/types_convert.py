@@ -32,6 +32,21 @@ def hex_to_bytes(h):
     return bytes.fromhex(h)
 
 
+def to_bytes(data, length, strict=False):
+    """
+    Convert data to bytes if legal, check bytes length, return bytes or None.
+    """
+
+    bytes_data = None
+    if isinstance(data, (bytes, bytearray)) and len(data) == length:
+        bytes_data = bytes(data)
+    elif is_valid_hex(data, length*2):
+        bytes_data = hex_to_bytes(data)
+    elif strict:
+        raise Exception('data is not bytes at given length')
+
+    return bytes_data
+
 def hex_to_int(h):
     """
     Convert hex string to int.

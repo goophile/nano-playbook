@@ -2,6 +2,7 @@
 
 
 from libs.block import Block
+from libs.account import Account
 
 
 open_blk = Block(
@@ -46,4 +47,7 @@ change_blk = Block(
 print(open_blk.calculate_hash().hex().upper())
 print(send_blk.calculate_hash().hex().upper())
 print(receive_blk.calculate_hash().hex().upper())
+
+open_account = Account(address=open_blk.account)
+print(open_account.verify_block(open_blk.hash, open_blk.signature))
 

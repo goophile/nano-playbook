@@ -4,7 +4,7 @@
 from pyblake2 import blake2b
 
 from .types_convert import *
-from .account import address_to_verifying_key
+from .account import address_to_verifying_key, address_valid
 
 
 class Block(object):
@@ -93,41 +93,27 @@ class Block(object):
 
     def _to_verifying_key(self, data):
         """
-        Convert data to verifying key if legal, return bytes.
+        Convert data to verifying key if legal, return bytes or None.
         """
 
-        vk = None
-        if isinstance(data, (bytes, bytearray)) and len(data) == 32:
-            vk = bytes(data)
-        elif is_valid_hex(data, 64):
-            vk = hex_to_bytes(data)
-        elif isinstance(data, str) and len(data) == 64 and data.startswith('xrb_'):
+        vk = to_bytes(data, 32)
+        if vk is None and isinstance(data, str) and address_valid(data):
             vk = address_to_verifying_key(data)
         return vk
 
     def _to_block_hash(self, data):
         """
-        Convert data to 32 bytes hash if legal, return bytes.
+        Convert data to 32 bytes hash if legal, return bytes or None.
         """
-
-        hash = None
-        if isinstance(data, (bytes, bytearray)) and len(data) == 32:
-            hash = bytes(data)
-        elif is_valid_hex(data, 64):
-            hash = hex_to_bytes(data)
-        return hash
+        return to_bytes(data, 32)
 
     def _to_balance(self, data):
         """
-        Convert data to 128-bits bytes if legal, return bytes.
+        Convert data to 128-bits bytes if legal, return bytes or None.
         """
 
-        balance = None
-        if isinstance(data, (bytes, bytearray)) and len(data) == 16:
-            balance = bytes(data)
-        elif is_valid_hex(data, 32):
-            balance = hex_to_bytes(data)
-        elif isinstance(data, int):
+        balance = to_bytes(data, 16)
+        if balance is None and isinstance(data, int):
             balance = int_to_bytes(data, 128)
         return balance
 
