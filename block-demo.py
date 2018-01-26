@@ -49,5 +49,5 @@ print(send_blk.calculate_hash().hex().upper())
 print(receive_blk.calculate_hash().hex().upper())
 
 open_account = Account(address=open_blk.account)
-print(open_account.verify_block(open_blk.hash, open_blk.signature))
+print(open_account.signature_valid(open_blk.hash, open_blk.signature))
 

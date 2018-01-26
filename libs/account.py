@@ -88,7 +88,7 @@ class Account(object):
         sk_obj = ed25519.SigningKey(self._signing_key_bytes)
         return sk_obj.sign(hash_bytes)
 
-    def verify_block(self, block_hash, signature):
+    def signature_valid(self, block_hash, signature):
         """
         Use verifying key to verify block hash and the signature, return True or False
         """
