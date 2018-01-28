@@ -50,7 +50,7 @@ Please note that, after concatenating with zero-valued binary data, the hash of 
 The Raiblocks seed, the signing key, and the verifying key, they are all 32 bytes long. After converted to hex string, they are all 64 characters long.
 
 
-# Address format
+# Address Format
 
 The RaiBlocks address is in fact a base32 encoded string of the verifying key.
 
@@ -64,3 +64,9 @@ The prefix "xrb_", concatenated with the base32 encoded verifying key, and the b
 
 To get the verifying key, we can slice up the address, and decode the key part with base32 alphabet and remove the heading 4-bits zeros.
 
+
+# Genesis Account
+
+The Genesis account of RaiBlocks is `xrb_3t6k35gi95xu6tergt6p69ck76ogmitsa8mnijtpxm9fkcm736xtoncuohr3`, the equivalent verifying key is `E89208DD038FBB269987689621D52292AE9C35941A7484756ECCED92A65093BA`.
+
+All the money supply in the system comes from the Genesis account.
