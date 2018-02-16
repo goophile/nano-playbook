@@ -7,14 +7,19 @@ from pyblake2 import blake2b
 from .types_convert import *
 from .account import address_to_verifying_key, address_valid
 
+
 POW_THRESHOLD = bytes.fromhex('FFFFFFC000000000')
+GENESIS_HASH = bytes.fromhex('991CF190094C00F0B68E2E5F75F6BEE95A2E0BD93CEAA4A6734DB9F19B728948')
 
 
 class Block(object):
 
     def __init__(self, type,
-            previous=None, source=None, destination=None, account=None, balance=None, representative=None,
-            hash=None,signature=None, work=None):
+            previous=None, source=None,
+            balance=None,
+            destination=None, account=None, representative=None,
+            signature=None, work=None, hash=None,
+            next=None):
         """
         This Class only store the 4 types of blocks and their fields.
         Verifying key can be calucated from address, it's in the _bytes field. Signing key is not stored here.
@@ -36,9 +41,22 @@ class Block(object):
         self._representative_bytes = None
         self._balance_bytes        = None
 
-        self.hash       = hash
         self.signature  = signature
         self.work       = work
+        self.hash       = hash
+        self.next       = next
+
+        self._hash_bytes = None
+        self._is_genesis = False
+
+    def __str__(self):
+        """
+        Reture a readable hex string of the hash.
+        """
+        if self.hash:
+            return self.hash
+        else:
+            return self.calculate_hash().hex().upper()
 
     def _calculate_hash_open(self):
         """
@@ -157,16 +175,21 @@ class Block(object):
         self._prepare_block()
 
         if self.type == 'open':
-            return self._calculate_hash_open()
+            self._hash_bytes = self._calculate_hash_open()
 
         elif self.type == 'send':
-            return self._calculate_hash_send()
+            self._hash_bytes = self._calculate_hash_send()
 
         elif self.type == 'receive':
-            return self._calculate_hash_receive()
+            self._hash_bytes = self._calculate_hash_receive()
 
         elif self.type == 'change':
-            return self._calculate_hash_change()
+            self._hash_bytes = self._calculate_hash_change()
+
+        if self._hash_bytes == GENESIS_HASH:
+            self._is_genesis = True
+
+        return self._hash_bytes
 
     def work_valid(self):
         self._prepare_block()
@@ -177,13 +200,9 @@ class Block(object):
             field_bytes = self._previous_bytes
 
         work_bytes = to_bytes(self.work, 8)
-
         return self._work_valid(work_bytes, field_bytes)
 
     def _work_valid(self, work_bytes, field_bytes):
-        work_bytes = bytearray(work_bytes)
-        work_bytes.reverse()
-
         h = blake2b(digest_size=8)
         h.update(work_bytes)
         h.update(field_bytes)

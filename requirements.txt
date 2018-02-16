@@ -1,0 +1,3 @@
+pyblake2
+lmdb
+pytest

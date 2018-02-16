@@ -10,6 +10,10 @@ from .zbase32 import encode as b32_encode
 from .types_convert import *
 
 
+GENESIS_ADDRESS = 'xrb_3t6k35gi95xu6tergt6p69ck76ogmitsa8mnijtpxm9fkcm736xtoncuohr3'
+GENESIS_VERIFYING_KEY = bytes.fromhex('E89208DD038FBB269987689621D52292AE9C35941A7484756ECCED92A65093BA')
+
+
 class Account(object):
 
     def __init__(self, signing_key=None, verifying_key=None, address=None):
@@ -23,6 +27,15 @@ class Account(object):
 
         self._signing_key_bytes     = None
         self._verifying_key_bytes   = None
+
+        self._is_genesis = False
+
+    def __str__(self):
+        """
+        Reture a readable address.
+        """
+        self._prepare_account()
+        return verifying_key_to_address(self._verifying_key_bytes)
 
     def _to_signing_key(self, data):
         """
@@ -77,6 +90,9 @@ class Account(object):
                 if verifying_key_bytes is not None and verifying_key_bytes != address_bytes:
                     raise Exception('verifying_key and address not match')
                 self._verifying_key_bytes = address_bytes
+
+        if self._verifying_key_bytes == GENESIS_VERIFYING_KEY:
+            self._is_genesis = True
 
     def sign_block(self, block_hash):
         self._prepare_account()
