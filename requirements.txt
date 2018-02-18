@@ -1,3 +1,4 @@
+bitstring
 pyblake2
 lmdb
 pytest

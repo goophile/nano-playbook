@@ -72,9 +72,25 @@ function receive_dissector_144(buffer, subtree)
 end
 
 
-function keepalive_dissector_152(buffer, subtree)
-    subtree = subtree:add(buffer(8, 144), "Keepalive")
-    subtree:add(buffer(8,  144),  "Keepalive?: "    .. buffer(8,  144))
+function peers_dissector_152(buffer, subtree)
+    -- Port is in network byte order
+    subtree = subtree:add(buffer(8, 144), "Peers")
+    subtree:add(buffer(8,   16),  "IP: "        .. buffer(8,   16))
+    subtree:add(buffer(24,   2),  "Port: "      .. buffer(24,   2))
+    subtree:add(buffer(26,  16),  "IP: "        .. buffer(26,  16))
+    subtree:add(buffer(42,   2),  "Port: "      .. buffer(42,   2))
+    subtree:add(buffer(44,  16),  "IP: "        .. buffer(44,  16))
+    subtree:add(buffer(60,   2),  "Port: "      .. buffer(60,   2))
+    subtree:add(buffer(62,  16),  "IP: "        .. buffer(62,  16))
+    subtree:add(buffer(78,   2),  "Port: "      .. buffer(78,   2))
+    subtree:add(buffer(80,  16),  "IP: "        .. buffer(80,  16))
+    subtree:add(buffer(96,   2),  "Port: "      .. buffer(96,   2))
+    subtree:add(buffer(98,  16),  "IP: "        .. buffer(98,  16))
+    subtree:add(buffer(114,  2),  "Port: "      .. buffer(114,  2))
+    subtree:add(buffer(116, 16),  "IP: "        .. buffer(116, 16))
+    subtree:add(buffer(132,  2),  "Port: "      .. buffer(132,  2))
+    subtree:add(buffer(134, 16),  "IP: "        .. buffer(134, 16))
+    subtree:add(buffer(150,  2),  "Port: "      .. buffer(150,  2))
 end
 
 
@@ -106,8 +122,8 @@ function nano_proto.dissector(buffer, pinfo, tree)
         pinfo.cols.protocol = "Nano Receive"
         receive_dissector_144(buffer, subtree)
     elseif buf_len == 152 then
-        pinfo.cols.protocol = "Nano Keepalive?"
-        keepalive_dissector_152(buffer, subtree)
+        pinfo.cols.protocol = "Nano Peers"
+        peers_dissector_152(buffer, subtree)
     end
 end
 
