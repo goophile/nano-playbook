@@ -88,7 +88,7 @@ class Storage(object):
 
     def _to_block_hash_bytes(self, data):
         """
-        Convert data to 32 bytes hash if legal, return bytes or None.
+        Convert data to 32 bytes hash if legal, return bytes.
         """
 
         return to_bytes(data, 32)

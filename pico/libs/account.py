@@ -25,8 +25,8 @@ class Account(object):
         self.verifying_key  = verifying_key
         self.address        = address
 
-        self._signing_key_bytes     = None
-        self._verifying_key_bytes   = None
+        self._signing_key_bytes    = None
+        self._verifying_key_bytes  = None
 
         self._is_genesis = False
 
@@ -39,18 +39,18 @@ class Account(object):
 
     def _to_signing_key(self, data):
         """
-        Convert data to signing key if legal, return bytes or None.
+        Convert data to signing key if legal, return bytes.
         """
 
         return to_bytes(data, 32)
 
     def _to_verifying_key(self, data):
         """
-        Convert data to verifying key if legal, return bytes or None.
+        Convert data to verifying key if legal, return bytes.
         """
 
         vk = to_bytes(data, 32)
-        if vk is None and isinstance(data, str) and address_valid(data):
+        if not vk and isinstance(data, str) and address_valid(data):
             vk = address_to_verifying_key(data)
         return vk
 
@@ -60,20 +60,20 @@ class Account(object):
         If not, generate address/verifying_key from each other.
         """
 
-        if self.signing_key is None and self.verifying_key is None and self.address is None:
+        if not self.signing_key and not self.verifying_key and not self.address:
             raise Exception('signing_key/verifying_key/address, must give at least one')
 
         signing_key_bytes = self._to_signing_key(self.signing_key)
         verifying_key_bytes = self._to_verifying_key(self.verifying_key)
         address_bytes = self._to_verifying_key(self.address)
 
-        if signing_key_bytes is not None:
+        if signing_key_bytes:
             _verifying_key_bytes = signing_to_verifying_key(signing_key_bytes)
 
             # Guard against signing_key/verifying_key/address mismatch.
-            if verifying_key_bytes is not None and _verifying_key_bytes != verifying_key_bytes:
+            if verifying_key_bytes and _verifying_key_bytes != verifying_key_bytes:
                 raise Exception('signing_key and verifying_key not match')
-            if address_bytes is not None and _verifying_key_bytes != address_bytes:
+            if address_bytes and _verifying_key_bytes != address_bytes:
                 raise Exception('signing_key and address not match')
 
             self._signing_key_bytes = signing_key_bytes
@@ -81,13 +81,13 @@ class Account(object):
 
         else:
 
-            if verifying_key_bytes is not None:
-                if address_bytes is not None and verifying_key_bytes != address_bytes:
+            if verifying_key_bytes:
+                if address_bytes and verifying_key_bytes != address_bytes:
                     raise Exception('verifying_key and address not match')
                 self._verifying_key_bytes = verifying_key_bytes
 
-            elif address_bytes is not None:
-                if verifying_key_bytes is not None and verifying_key_bytes != address_bytes:
+            elif address_bytes:
+                if verifying_key_bytes and verifying_key_bytes != address_bytes:
                     raise Exception('verifying_key and address not match')
                 self._verifying_key_bytes = address_bytes
 
@@ -96,7 +96,7 @@ class Account(object):
 
     def sign_block(self, block_hash):
         self._prepare_account()
-        if self._signing_key_bytes is None:
+        if not self._signing_key_bytes:
             raise Exception('can not sign block since signing_key is not given')
 
         hash_bytes = to_bytes(block_hash, 32, strict=True)
@@ -109,7 +109,7 @@ class Account(object):
         Use verifying key to verify block hash and the signature, return True or False
         """
         self._prepare_account()
-        if self._verifying_key_bytes is None:
+        if not self._verifying_key_bytes:
             raise Exception('can not verify block since verifying_key or address is not given')
 
         hash_bytes = to_bytes(block_hash, 32, strict=True)

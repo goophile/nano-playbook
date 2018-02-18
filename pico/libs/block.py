@@ -10,6 +10,7 @@ from .account import address_to_verifying_key, address_valid
 
 POW_THRESHOLD = bytes.fromhex('FFFFFFC000000000')
 GENESIS_HASH = bytes.fromhex('991CF190094C00F0B68E2E5F75F6BEE95A2E0BD93CEAA4A6734DB9F19B728948')
+EMPTY_HASH = '0000000000000000000000000000000000000000000000000000000000000000'
 
 
 class Block(object):
@@ -19,9 +20,9 @@ class Block(object):
             balance=None,
             destination=None, account=None, representative=None,
             signature=None, work=None, hash=None,
-            next=None):
+            next=EMPTY_HASH):
         """
-        This Class only store the 4 types of blocks and their fields.
+        This Class only stores the 4 types of blocks and their fields.
         Verifying key can be calucated from address, it's in the _bytes field. Signing key is not stored here.
         """
 
@@ -46,7 +47,11 @@ class Block(object):
         self.hash       = hash
         self.next       = next
 
-        self._hash_bytes = None
+        self._signature_bytes = None
+        self._work_bytes      = None
+        self._hash_bytes      = None
+        self._next_bytes      = None
+
         self._is_genesis = False
 
     def __str__(self):
@@ -102,27 +107,21 @@ class Block(object):
 
     def _to_verifying_key(self, data):
         """
-        Convert data to verifying key if legal, return bytes or None.
+        Convert data to verifying key if legal, return bytes.
         """
 
         vk = to_bytes(data, 32)
-        if vk is None and isinstance(data, str) and address_valid(data):
+        if not vk and isinstance(data, str) and address_valid(data):
             vk = address_to_verifying_key(data)
         return vk
 
-    def _to_block_hash(self, data):
-        """
-        Convert data to 32 bytes hash if legal, return bytes or None.
-        """
-        return to_bytes(data, 32)
-
     def _to_balance(self, data):
         """
-        Convert data to 128-bits bytes if legal, return bytes or None.
+        Convert data to 128-bits bytes if legal, return bytes.
         """
 
         balance = to_bytes(data, 16)
-        if balance is None and isinstance(data, int):
+        if not balance and isinstance(data, int):
             balance = int_to_bytes(data, 128)
         return balance
 
@@ -131,8 +130,8 @@ class Block(object):
         Convert all available fields to bytes.
         """
 
-        self._previous_bytes = self._to_block_hash(self.previous)
-        self._source_bytes = self._to_block_hash(self.source)
+        self._previous_bytes = to_bytes(self.previous, 32)
+        self._source_bytes = to_bytes(self.source, 32)
 
         self._balance_bytes = self._to_balance(self.balance)
 
@@ -140,7 +139,9 @@ class Block(object):
         self._account_bytes = self._to_verifying_key(self.account)
         self._representative_bytes = self._to_verifying_key(self.representative)
 
-        self._validate_fields()
+        self._signature_bytes = to_bytes(self.signature, 64)
+        self._work_bytes = to_bytes(self.work, 8)
+        self._next_bytes = to_bytes(self.work, 32)
 
     def _validate_fields(self):
         """
@@ -148,19 +149,19 @@ class Block(object):
         """
 
         if self.type == 'open':
-            if None in [self._source_bytes, self._representative_bytes, self._account_bytes]:
+            if not (self._source_bytes and self._representative_bytes and self._account_bytes):
                 raise Exception('block lack of fields')
 
         elif self.type == 'send':
-            if None in [self._previous_bytes, self._destination_bytes, self._balance_bytes]:
+            if not (self._previous_bytes and self._destination_bytes and self._balance_bytes):
                 raise Exception('block lack of fields')
 
         elif self.type == 'receive':
-            if None in [self._previous_bytes, self._source_bytes]:
+            if not (self._previous_bytes and self._source_bytes):
                 raise Exception('block lack of fields')
 
         elif self.type == 'change':
-            if None in [self._previous_bytes, self._representative_bytes]:
+            if not (self._previous_bytes and self._representative_bytes):
                 raise Exception('block lack of fields')
 
         else:
@@ -173,6 +174,7 @@ class Block(object):
 
         # first, convert all fields to bytes.
         self._prepare_block()
+        self._validate_fields()
 
         if self.type == 'open':
             self._hash_bytes = self._calculate_hash_open()
@@ -199,8 +201,7 @@ class Block(object):
         else:
             field_bytes = self._previous_bytes
 
-        work_bytes = to_bytes(self.work, 8)
-        return self._work_valid(work_bytes, field_bytes)
+        return self._work_valid(self._work_bytes, field_bytes)
 
     def _work_valid(self, work_bytes, field_bytes):
         h = blake2b(digest_size=8)
@@ -232,4 +233,109 @@ class Block(object):
 
         print('guess round for a valid work: %d' % i)
         return work_bytes
+
+    def _pack(self):
+        """
+        Pack a Block class to continuous bytes.
+        Packed fields: hash-fields, signature and work.
+        """
+
+        self._prepare_block()
+        self._validate_fields()
+
+        if not self._signature_bytes:
+            raise ValueError('can not pack with a None signature')
+
+        if not self.work_valid():
+            raise ValueError('can not pack with a invalid work: %s' % self.work)
+
+        packed_bytes = b''
+
+        if self.type == 'open':
+            packed_bytes = self._source_bytes + self._representative_bytes + self._account_bytes
+
+        elif self.type == 'send':
+            packed_bytes = self._previous_bytes + self._destination_bytes + self._balance_bytes
+
+        elif self.type == 'receive':
+            packed_bytes = self._previous_bytes + self._source_bytes
+
+        elif self.type == 'change':
+            packed_bytes = self._previous_bytes + self._representative_bytes
+
+        packed_bytes += self._signature_bytes
+        packed_bytes += self._work_bytes
+
+        return packed_bytes
+
+    def _unpack(self, packed_bytes):
+        """
+        Reverse the _pack().
+        """
+
+        if self.type == 'open':
+            if len(packed_bytes) != 168:
+                raise Exception('invalid data length to unpack: %s' % len(packed_bytes))
+
+            self.source = packed_bytes[0:32]
+            self.representative = packed_bytes[32:64]
+            self.account = packed_bytes[64:96]
+            self.signature = packed_bytes[96:160]
+            self.work = packed_bytes[160:168]
+
+        elif self.type == 'send':
+            if len(packed_bytes) != 152:
+                raise Exception('invalid data length to unpack: %s' % len(packed_bytes))
+
+            self.previous = packed_bytes[0:32]
+            self.destination = packed_bytes[32:64]
+            self.balance = packed_bytes[64:80]
+            self.signature = packed_bytes[80:144]
+            self.work = packed_bytes[144:152]
+
+        elif self.type == 'receive':
+            if len(packed_bytes) != 136:
+                raise Exception('invalid data length to unpack: %s' % len(packed_bytes))
+
+            self.previous = packed_bytes[0:32]
+            self.source = packed_bytes[32:64]
+            self.signature = packed_bytes[64:128]
+            self.work = packed_bytes[128:136]
+
+        elif self.type == 'change':
+            if len(packed_bytes) != 136:
+                raise Exception('invalid data length to unpack: %s' % len(packed_bytes))
+
+            self.previous = packed_bytes[0:32]
+            self.representative = packed_bytes[32:64]
+            self.signature = packed_bytes[64:128]
+            self.work = packed_bytes[128:136]
+
+        else:
+            raise ValueError('wrong block type: %s' % self.type)
+
+    def to_network_bytes(self):
+        """
+        TODO: In the captured packets, some blocks have 3 previous fields,
+        still unknown what they are, so don't handle them for now.
+        """
+        return self._pack()
+
+    def to_storage_bytes(self):
+        packed_bytes = self._pack()
+        next_bytes = to_bytes(self.next, 32)
+        packed_bytes += next_bytes
+        return packed_bytes
+
+    def from_network_bytes(self, data):
+        """
+        Should pass sliced data from network (remove `type` field and the 3 previous fields in packets.)
+        """
+        packed_bytes = to_bytes(data)
+        self._unpack(packed_bytes)
+
+    def from_storage_bytes(self, data):
+        packed_bytes = to_bytes(data)
+        self._next_bytes = packed_bytes[-32:]
+        self._unpack(packed_bytes[:-32])
 

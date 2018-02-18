@@ -32,12 +32,13 @@ def hex_to_bytes(h):
     return bytes.fromhex(h)
 
 
-def to_bytes(data, length, strict=False):
+def to_bytes(data, length=0, strict=False):
     """
-    Convert data to bytes if legal, check bytes length, return bytes or None.
+    Convert data to bytes if legal, check bytes length, return bytes.
+    If illegal, return empty bytes.
     """
 
-    bytes_data = None
+    bytes_data = b''
     if isinstance(data, (bytes, bytearray)) and len(data) == length:
         bytes_data = bytes(data)
     elif is_valid_hex(data, length*2):
