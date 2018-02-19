@@ -39,7 +39,9 @@ def to_bytes(data, length=0, strict=False):
     """
 
     bytes_data = b''
-    if isinstance(data, (bytes, bytearray)) and len(data) == length:
+    if isinstance(data, (bytes, bytearray)) and length == 0:
+        bytes_data = bytes(data)
+    elif isinstance(data, (bytes, bytearray)) and len(data) == length:
         bytes_data = bytes(data)
     elif is_valid_hex(data, length*2):
         bytes_data = hex_to_bytes(data)

@@ -114,7 +114,7 @@ def test_block_receive():
     86C3565BE806C52B
     '''
 
-    network_hex_raw = ''.join(receive_block_hex.split()[1:])
+    network_hex_block = ''.join(receive_block_hex.split()[1:])
 
     receive_block = Block(
             type       = 'receive',
@@ -127,10 +127,10 @@ def test_block_receive():
 
     assert receive_block.calculate_hash().hex().upper() == '7C2163FE063C9195E4C151646F6819E568F55BD1392182E50410D347336BCDF0'
     assert receive_block.work_valid()
-    assert receive_block.to_network_bytes().hex().upper() == network_hex_raw
+    assert receive_block.to_network_bytes().hex().upper() == network_hex_block
 
     unpacked_block = Block(type='receive')
-    unpacked_block.from_network_bytes(network_hex_raw)
+    unpacked_block.from_network_bytes(network_hex_block)
 
     assert unpacked_block.calculate_hash().hex().upper() == '7C2163FE063C9195E4C151646F6819E568F55BD1392182E50410D347336BCDF0'
 
