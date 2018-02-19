@@ -4,7 +4,7 @@
 import os
 from pyblake2 import blake2b
 
-from .types_convert import *
+from .types_convert import to_bytes, int_to_bytes
 from .account import address_to_verifying_key, address_valid
 
 

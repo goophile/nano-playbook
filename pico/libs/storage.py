@@ -3,7 +3,7 @@
 import lmdb
 import os
 
-from .types_convert import *
+from .types_convert import to_bytes
 
 HOME_DIR = os.path.expanduser('~')
 DEFAULT_DB_DIR = os.path.join(HOME_DIR, 'RaiBlocks')

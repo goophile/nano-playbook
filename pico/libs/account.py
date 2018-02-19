@@ -7,7 +7,7 @@ from bitstring import BitArray
 from .pure25519 import ed25519_oop as ed25519
 from .zbase32 import decode as b32_decode
 from .zbase32 import encode as b32_encode
-from .types_convert import *
+from .types_convert import to_bytes
 
 
 GENESIS_ADDRESS = 'xrb_3t6k35gi95xu6tergt6p69ck76ogmitsa8mnijtpxm9fkcm736xtoncuohr3'
@@ -95,6 +95,9 @@ class Account(object):
             self._is_genesis = True
 
     def sign_block(self, block_hash):
+        """
+        Return the signature of a hash.
+        """
         self._prepare_account()
         if not self._signing_key_bytes:
             raise Exception('can not sign block since signing_key is not given')

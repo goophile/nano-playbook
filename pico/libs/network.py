@@ -3,12 +3,20 @@
 import socket 
 import random
 
-from .types_convert import *
+from .types_convert import to_bytes, int_to_bytes
 
-
+# nslookup rai.raiblocks.net, got these peers
 PRECONFIGURED_PEERS = [
-        ("rai.raiblocks.net", 7075),
-        ]
+        ('192.99.176.122',  7075),
+        ('139.162.199.142', 7075),
+        ('144.217.167.119', 7075),
+        ('192.95.57.248',   7075),
+        ('192.99.176.121',  7075),
+        ('138.68.2.234',    7075),
+        ('138.201.94.249',  7075),
+        ('45.32.246.108',   7075),
+        ('128.199.199.97',  7075),
+    ]
 
 TEST_PEER = '10.1.1.1'
 
@@ -132,10 +140,15 @@ class Network(object):
         return data
 
     def send(self, data, address=None):
-        # (ip, port) = random.choice(list(self.peer_set))
+        """
+        address is (ip, port) tupple pair.
+        """
+        data_bytes = to_bytes(data)
+
         if address:
-            self._peering_session.sendto(data, address)
-        else:
-            for addr in self.peer_set:
-                self._peering_session.sendto(data, addr)
+            self._peering_session.sendto(data_bytes, address)
+            return
+
+        for addr in list(self.peer_set)[0:40]:
+            self._peering_session.sendto(data_bytes, addr)
 
