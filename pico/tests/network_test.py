@@ -7,7 +7,7 @@ import pytest
 PROJECT_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, PROJECT_PATH)
 
-from libs.network import message_encode, message_decode
+from libs.network import message_encode, message_decode, Network
 
 
 def test_message():
@@ -59,4 +59,60 @@ def test_message_with_representative():
     assert block_type == 'open'
     assert representative_bytes.hex().upper() == network_hex_rep
     assert block_bytes.hex().upper() == network_hex_block
+
+
+def test_message_keepalive():
+    # 152 bytes of data captured from network
+    keepalive_hex = '''
+    5243050501020000
+    00000000000000000000ffffd57f36480545
+    00000000000000000000ffff2578a7a4a31b
+    00000000000000000000ffffc7f70194a31b
+    00000000000000000000ffffad3826bea31b
+    00000000000000000000ffff9f411985a31b
+    00000000000000000000ffff5249a1afa31b
+    00000000000000000000ffff48e4b0ffa31b
+    00000000000000000000ffff5f553a18850d
+    '''
+
+    network_hex_raw = ''.join(keepalive_hex.split())
+    network_hex_block = ''.join(keepalive_hex.split()[1:])
+
+    message_bytes = message_encode('keepalive', 'invalid', b'', network_hex_block)
+    assert message_bytes.hex().upper() == network_hex_raw.upper()
+
+    message_type, block_type, representative_bytes, block_bytes = message_decode(network_hex_raw)
+    assert message_type == 'keepalive'
+    assert block_type == 'invalid'
+    assert representative_bytes == b''
+    assert block_bytes.hex().upper() == network_hex_block.upper()
+
+
+def test_network_pack():
+    # 152 bytes of data captured from network
+    keepalive_hex = '''
+    5243050501020000
+    00000000000000000000ffffd57f36480545
+    00000000000000000000ffff2578a7a4a31b
+    00000000000000000000ffffc7f70194a31b
+    00000000000000000000ffffad3826bea31b
+    00000000000000000000ffff9f411985a31b
+    00000000000000000000ffff5249a1afa31b
+    00000000000000000000ffff48e4b0ffa31b
+    00000000000000000000ffff5f553a18850d
+    '''
+
+    network_hex_block = ''.join(keepalive_hex.split()[1:])
+    session = Network()
+
+    peers = session.unpack_peers(network_hex_block)
+    peer = peers[3]  # choose one of them to check
+    assert peer[1] == 7075
+
+    keepalive_bytes = session.pack_peers(peers)
+    assert keepalive_bytes.hex() == network_hex_block
+
+    empty_peers = [('::', 0)]
+    empty_bytes = session.pack_peers(empty_peers)
+    assert empty_bytes.hex() == '0' * 18 * 8 * 2
 

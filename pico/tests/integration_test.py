@@ -53,6 +53,7 @@ def test_integration_open(manual=False):
 
     message_bytes = message_encode('publish', 'open', b'', open_block.to_network_bytes())
     if manual:
+        print(open_block.hash.hex())
         return message_bytes
     else:
         assert message_bytes.hex().upper() == open_block_raw
@@ -65,5 +66,8 @@ def open_manual_with_network():
     print(message_bytes.hex())
     udp_net.send(message_bytes)
 
-# open_manual_with_network()
+
+if __name__ == '__main__':
+    print('uncomment to test manually')
+    # open_manual_with_network()
 

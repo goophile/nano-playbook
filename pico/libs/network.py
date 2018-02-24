@@ -1,24 +1,23 @@
 #!/usr/bin/env python3
 
-import socket 
+import socket
 import random
+import ipaddress
 
-from .types_convert import to_bytes, int_to_bytes
+from .types_convert import to_bytes, int_to_bytes, hex_to_int, bytes_to_hex
 
 # nslookup rai.raiblocks.net, got these peers
 PRECONFIGURED_PEERS = [
-        ('192.99.176.122',  7075),
-        ('139.162.199.142', 7075),
-        ('144.217.167.119', 7075),
-        ('192.95.57.248',   7075),
-        ('192.99.176.121',  7075),
-        ('138.68.2.234',    7075),
-        ('138.201.94.249',  7075),
-        ('45.32.246.108',   7075),
-        ('128.199.199.97',  7075),
+        ('::ffff:192.99.176.122',  7075, 0, 0),
+        ('::ffff:139.162.199.142', 7075, 0, 0),
+        ('::ffff:144.217.167.119', 7075, 0, 0),
+        ('::ffff:192.95.57.248',   7075, 0, 0),
+        ('::ffff:192.99.176.121',  7075, 0, 0),
+        ('::ffff:138.68.2.234',    7075, 0, 0),
+        ('::ffff:138.201.94.249',  7075, 0, 0),
+        ('::ffff:45.32.246.108',   7075, 0, 0),
+        ('::ffff:128.199.199.97',  7075, 0, 0),
     ]
-
-TEST_PEER = '10.1.1.1'
 
 # rai/node/common.hpp (85n): enum class message_type : uint8_t
 MESSAGE_TYPE_HEX_DICT = {
@@ -125,13 +124,17 @@ class Network(object):
     """
     Send/Receive packets.
     """
-    def __init__(self, ip='0.0.0.0', peering_port=7075):
-        self.ip                 = ip
-        self.peering_port       = peering_port
-        self._peering_session   = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.peer_set           = set(PRECONFIGURED_PEERS) # a list of peer addr (ip, port)
+    def __init__(self, ip='::', peering_port=7075):
+        if ':' in ip:
+            self.ip = ip  # IPv6
+        else:
+            self.ip = '::ffff:%s' % ip  # convert to IPv6-mapped-IPv4-address
+        self.peering_port = peering_port
+        self.peer_set = set(PRECONFIGURED_PEERS)  # a list of peer addr (ip, port)
+        self._peering_session = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
+        self._peering_session.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 0)
 
-    def listen(self):
+    def bind(self):
         self._peering_session.bind((self.ip, self.peering_port))
 
     def receive(self):
@@ -149,6 +152,76 @@ class Network(object):
             self._peering_session.sendto(data_bytes, address)
             return
 
-        for addr in list(self.peer_set)[0:40]:
-            self._peering_session.sendto(data_bytes, addr)
+        peer_list = list(self.peer_set)
+        random.shuffle(peer_list)
+
+        for addr in peer_list[0:40]:
+            try:
+                self._peering_session.sendto(data_bytes, addr)
+            except Exception as e:
+                print('%s: unable to sendto %s' % (e, addr))
+
+    def update_peers(self, peers):
+        """
+        Add peers to peer_set.
+        """
+        if isinstance(peers, (list, set)):
+            peers = list(peers)
+        elif isinstance(peers, str):
+            peers = [peers, ]
+        else:
+            peers = []
+
+        new_set = set()
+        for peer in peers:
+            if isinstance(peer, tuple) and '::ffff:' in str(peer[0]):  # only add IPv4 for now
+                new_set.add(peer)
+                # print('add new peer: %s' % peer[0])
+
+        self.peer_set.update(new_set)
+
+    def pack_peers(self, peers=None):
+        """
+        Select 8 random peers and pack to keepalive bytes.
+        """
+
+        if isinstance(peers, (list, set)):
+            peer_list = list(peers)
+        elif isinstance(peers, str):
+            peer_list = [peers, ]
+        else:
+            peer_list = list(self.peer_set)
+            random.shuffle(peer_list)
+        peers = peer_list[0:8]
+        peers += [('::', 0)] * (8 - len(peers))  # append zeros to fit 8 peers length
+        packed_bytes = b''
+        for peer in peers:
+            ip_bytes = ipaddress.IPv6Address(peer[0]).packed
+            port_bytes = int_to_bytes(socket.htons(peer[1]), 16)
+            packed_bytes += ip_bytes
+            packed_bytes += port_bytes
+
+        return packed_bytes
+
+    def unpack_peers(self, packed_bytes):
+        """
+        Unpack keepalive bytes to peer address tuples.
+        """
+
+        packed_bytes = to_bytes(packed_bytes)
+        packed_bytes += b'0' * (144 - len(packed_bytes))
+        peer_bytes_list = []
+        for i in range(0, 8):
+            peer_bytes_list.append(packed_bytes[i*18: i*18+18])
+
+        peers = []
+        for peer_bytes in peer_bytes_list:
+            ip_bytes = peer_bytes[0:16]
+            port_bytes = peer_bytes[16:18]
+
+            ip = ipaddress.IPv6Address(ip_bytes).compressed
+            port = socket.ntohs(hex_to_int(bytes_to_hex(port_bytes)))
+            peers.append((ip, port, 0, 0))
+
+        return peers
 
