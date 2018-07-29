@@ -49,8 +49,8 @@ def network_receive(session):
 
         block.from_network_bytes(block_bytes)
         block.hash = block.calculate_hash().hex()
-        print('block hash: %s, work valid: %s, block type: %s' % 
-            (block.hash, block.work_valid(), block.type) )
+        print('block hash: %s, work valid: %s, block type: %s' %
+              (block.hash, block.work_valid(), block.type))
 
 
 def network_keepalive(session):

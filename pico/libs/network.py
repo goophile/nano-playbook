@@ -65,8 +65,12 @@ BLOCK_TYPE_DICT = {
     'change'        : '05',
 }
 
-STREAM_A        = '52'
-STREAM_B        = '43'
+# rai/node/common.hpp (119n): static std::array<uint8_t, 2> constexpr magic_number
+# rai_test_network: R A (5241)
+# rai_beta_network: R B (5242)
+# rai_live_network: R C (5243)
+MAGIC_A         = '52'  # ascii of 'R'
+MAGIC_B         = '43'  # ascii of 'C'
 VERSION_MAX     = '05'
 VERSION_USING   = '05'
 VERSION_MIN     = '01'
@@ -75,7 +79,7 @@ EXTENSION       = '00'
 _header_hex_example = '52 43 05 05 01 03 00 03'
 
 
-LOCAL_HEADER_PREFIX  = [STREAM_A, STREAM_B, VERSION_MAX, VERSION_USING, VERSION_MIN, ]
+LOCAL_HEADER_PREFIX  = [MAGIC_A, MAGIC_B, VERSION_MAX, VERSION_USING, VERSION_MIN, ]
 REPRESENTATIVE_DATA_LEN = 104 # bytes
 
 
@@ -105,7 +109,10 @@ def message_decode(message):
     header_bytes = message_bytes[0:8]
 
     header_hex = [int_to_bytes(b, 8).hex() for b in header_bytes]
-    (stream_a, stream_b, version_max, version_using, version_min, message_type, extension, block_type) = header_hex
+    (magic_a, magic_b, version_max, version_using, version_min, message_type, extension, block_type) = header_hex
+
+    if magic_a != MAGIC_A or magic_b != MAGIC_B:
+        return None, None, None, None
 
     message_type = MESSAGE_TYPE_HEX_DICT[message_type]
     block_type = BLOCK_TYPE_HEX_DICT[block_type]
@@ -155,6 +162,7 @@ class Network(object):
         peer_list = list(self.peer_set)
         random.shuffle(peer_list)
 
+        # TODO: should only send to a fixed list of peers
         for addr in peer_list[0:40]:
             try:
                 self._peering_session.sendto(data_bytes, addr)
@@ -174,9 +182,8 @@ class Network(object):
 
         new_set = set()
         for peer in peers:
-            if isinstance(peer, tuple) and '::ffff:' in str(peer[0]):  # only add IPv4 for now
+            if isinstance(peer, tuple) and '::ffff:' in str(peer[0]):  # TODO: only handle IPv4 for now
                 new_set.add(peer)
-                # print('add new peer: %s' % peer[0])
 
         self.peer_set.update(new_set)
 
@@ -186,14 +193,14 @@ class Network(object):
         """
 
         if isinstance(peers, (list, set)):
-            peer_list = list(peers)
+            peers = list(peers)[0:8]
         elif isinstance(peers, str):
-            peer_list = [peers, ]
+            peers = [peers, ]
         else:
             peer_list = list(self.peer_set)
             random.shuffle(peer_list)
-        peers = peer_list[0:8]
-        peers += [('::', 0)] * (8 - len(peers))  # append zeros to fit 8 peers length
+            peers = peer_list[0:8]
+            peers += [('::', 0)] * (8 - len(peers))  # append zeros to fit 8 peers length
         packed_bytes = b''
         for peer in peers:
             ip_bytes = ipaddress.IPv6Address(peer[0]).packed
