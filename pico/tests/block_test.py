@@ -2,7 +2,6 @@
 
 import os
 import sys
-import pytest
 
 PROJECT_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, PROJECT_PATH)
@@ -30,7 +29,7 @@ def test_genesis_block_open():
             representative  = "xrb_3t6k35gi95xu6tergt6p69ck76ogmitsa8mnijtpxm9fkcm736xtoncuohr3",
             account         = "xrb_3t6k35gi95xu6tergt6p69ck76ogmitsa8mnijtpxm9fkcm736xtoncuohr3",
             signature       = "9F0C933C8ADE004D808EA1985FA746A7E95BA2A38F867640F53EC8F180BDFE9E2C1268DEAD7C2664F356E37ABA362BC58E46DBA03E523A7B5A19E4B6EB12BB02",
-            work            = "91b63fdd1754f062",
+            work            = "91B63FDD1754F062",
             hash            = '991CF190094C00F0B68E2E5F75F6BEE95A2E0BD93CEAA4A6734DB9F19B728948',
             next            = "A170D51B94E00371ACE76E35AC81DC9405D5D04D4CEBC399AEACE07AE05DD293"
         )
@@ -40,6 +39,7 @@ def test_genesis_block_open():
 
 
 def test_block_open():
+    # 200 bytes of data read from lmdb, it's the first open block (except genesis) in the whole network.
     landing_open_block_hex = '''
     A170D51B94E00371ACE76E35AC81DC9405D5D04D4CEBC399AEACE07AE05DD293
     2399A083C600AA0572F5E36247D978FCFC840405F8D4B6D33161C0066A55F431
@@ -89,7 +89,7 @@ def test_block_send():
             destination  = 'xrb_13ezf4od79h1tgj9aiu4djzcmmguendtjfuhwfukhuucboua8cpoihmh8byo',
             balance      = 'FD89D89D89D89D89D89D89D89D89D89D',
             signature    = '5B11B17DB9C8FE0CC58CAC6A6EECEF9CB122DA8A81C6D3DB1B5EE3AB065AA8F8CB1D6765C8EB91B58530C5FF5987AD95E6D34BB57F44257E20795EE412E61600',
-            work         = '95ee054972cc823c',
+            work         = '95EE054972CC823C',
             hash         = 'A170D51B94E00371ACE76E35AC81DC9405D5D04D4CEBC399AEACE07AE05DD293',
             next         = '28129ABCAB003AB246BA22702E0C218794DFFF72AD35FD56880D8E605C0798F6'
         )
@@ -105,38 +105,38 @@ def test_block_send():
 
 
 def test_block_receive():
-    # 144 bytes of data captured from network
+    # 144 bytes of data captured from network.
     receive_block_hex = '''
-    5243050501030003
-    6B6181C1AC75DAABD30CEAE15D44D30D238198968A5A794E057DC36503120550
-    7716EF323E3079CF8BF9E7EFD1C40F60F8DD3251F24D3F455098EEA90A33572E
-    3226710D0BD7D3E355F3F1D985AF8BA1B2EB9B346752DEF6F8C14C2C0E91C663A34B3F800E332E48913F7F1F65FF86342490B9C2F97D4FFF50B8F98ACD3DC90F
-    86C3565BE806C52B
+    52430B0B07040003
+    0248F7863AF7E9035B7AD7FC0C7F167DEF305D3D8C3EF85197676B0826B794A2
+    B55A379FBC452BC50561FD01497296A4F6BF4DF0EF6CDCDCB9DADC9144F0B3EF
+    1E5841CB81019BBF8EAE4EFACD9B0AF2162CF30D6BB90BB6574B4EDD973E6C8AE7126D4419568BBED3EB875C4D5E242D9C3BB40E7906FB2AF2F9D5A5D5339F01
+    1F256ED32440CCCF
     '''
 
     network_hex_block = ''.join(receive_block_hex.split()[1:])
 
     receive_block = Block(
             type       = 'receive',
-            previous   = '6b6181c1ac75daabd30ceae15d44d30d238198968a5a794e057dc36503120550',
-            source     = '7716ef323e3079cf8bf9e7efd1c40f60f8dd3251f24d3f455098eea90a33572e',
-            signature  = '3226710d0bd7d3e355f3f1d985af8ba1b2eb9b346752def6f8c14c2c0e91c663a34b3f800e332e48913f7f1f65ff86342490b9c2f97d4fff50b8f98acd3dc90f',
-            work       = '86c3565be806c52b',
-            hash       = '7C2163FE063C9195E4C151646F6819E568F55BD1392182E50410D347336BCDF0'
+            previous   = '0248F7863AF7E9035B7AD7FC0C7F167DEF305D3D8C3EF85197676B0826B794A2',
+            source     = 'B55A379FBC452BC50561FD01497296A4F6BF4DF0EF6CDCDCB9DADC9144F0B3EF',
+            signature  = '1E5841CB81019BBF8EAE4EFACD9B0AF2162CF30D6BB90BB6574B4EDD973E6C8AE7126D4419568BBED3EB875C4D5E242D9C3BB40E7906FB2AF2F9D5A5D5339F01',
+            work       = '1F256ED32440CCCF',
+            hash       = 'CBAD1775986A8E6C73827F6FF794C5FA17B84067ABB4C2D429EDD75DC5DB2656'
         )
 
-    assert receive_block.calculate_hash().hex().upper() == '7C2163FE063C9195E4C151646F6819E568F55BD1392182E50410D347336BCDF0'
+    assert receive_block.calculate_hash().hex().upper() == 'CBAD1775986A8E6C73827F6FF794C5FA17B84067ABB4C2D429EDD75DC5DB2656'
     assert receive_block.work_valid()
     assert receive_block.to_network_bytes().hex().upper() == network_hex_block
 
     unpacked_block = Block(type='receive')
     unpacked_block.from_network_bytes(network_hex_block)
 
-    assert unpacked_block.calculate_hash().hex().upper() == '7C2163FE063C9195E4C151646F6819E568F55BD1392182E50410D347336BCDF0'
+    assert unpacked_block.calculate_hash().hex().upper() == 'CBAD1775986A8E6C73827F6FF794C5FA17B84067ABB4C2D429EDD75DC5DB2656'
 
 
 def test_block_change():
-    # data read from lmdb, b'change' table
+    # data read from lmdb, b'change' table.
     change_block_hex = '''
     D228A12E8E10183AFB0CB9C444C88B0E6FB6F03572B41F3C3DB447E7459BC038
     023185665A78C297F803FE361C7818F6B9D5EB274E9DFCD2ACE1F92C6A9AF13D
@@ -152,11 +152,55 @@ def test_block_change():
             previous        = 'D228A12E8E10183AFB0CB9C444C88B0E6FB6F03572B41F3C3DB447E7459BC038',
             representative  = 'xrb_11jjiom7ny84kzw19zjp5jw3jxostqokgmnxzmbcsrhs7jobowbxr19dwbyt',
             signature       = 'F25DED3FC35937CFFBC4150FCFC81D27B80966ED6D9C3E42EF10278A4264436F7B935744748BAC4A73952585B9C0A0B788019EFB6F3E52D8CB8AEF30DACCD300',
-            work            = 'ec39f07202cadc4f',
+            work            = 'EC39F07202CADC4F',
             hash            = '007CC9DDEC9471235D4E37746052EB518FC321890A67884586DD73B18DABC69B'
         )
 
     assert change_block.calculate_hash().hex().upper() == '007CC9DDEC9471235D4E37746052EB518FC321890A67884586DD73B18DABC69B'
     assert change_block.work_valid()
     assert change_block.to_storage_bytes().hex().upper() == ''.join(change_block_hex.split())
+
+
+def test_block_state():
+    # 224 bytes of data captured from network.
+    state_block_hex = '''
+    5243080807030006
+    2AC1A3C9A1BF85D0E8C7FC6B62A0D87C40850760FBF9382FF824F6A042FAF61F
+    1ED7BB8BBF43DBD9AA5D81E1EDC5F59F95DB714056C0CBE86C9E48AD1C1EF3AE
+    3FE80B4BC842E82C1C18ABFEEC47EA989E63953BC82AC411F304D13833D52A56
+    000000120D5C7423002A0CDA22000000
+    8713D7C032E2E8D6C845FF04EC1F63D9E86EE961A2E61B9D7568EDB79CFE8A9F
+    B186EF270BFD779A272D7B52727D06B0990E84D358613B5924464CFD9983559AC9B7DD94912D14405E0BBAB681596CFD37A19E406D2623D73C3148A94699940A
+    FCB4E6B3F4DA6EAE
+    '''
+
+    network_hex_block = ''.join(state_block_hex.split()[1:])
+
+    # 2AC1A3C9A1BF85D0E8C7FC6B62A0D87C40850760FBF9382FF824F6A042FAF61F == xrb_1cp3nh6t5hw7t5nehz5decifiz41in5p3yzs91qzib9pn33hoxizqo4zos3f
+    # 3FE80B4BC842E82C1C18ABFEEC47EA989E63953BC82AC411F304D13833D52A56 == xrb_1hza3f7wiiqa7ig3jczyxj5yo86yegcmqk3criaz838j91sxcckpfhbhhra1
+
+    state_block = Block(
+            type            = 'state',
+            account         = 'xrb_1cp3nh6t5hw7t5nehz5decifiz41in5p3yzs91qzib9pn33hoxizqo4zos3f',
+            previous        = '1ED7BB8BBF43DBD9AA5D81E1EDC5F59F95DB714056C0CBE86C9E48AD1C1EF3AE',
+            representative  = 'xrb_1hza3f7wiiqa7ig3jczyxj5yo86yegcmqk3criaz838j91sxcckpfhbhhra1',
+            balance         = '000000120D5C7423002A0CDA22000000',
+            link            = '8713D7C032E2E8D6C845FF04EC1F63D9E86EE961A2E61B9D7568EDB79CFE8A9F',
+            signature       = 'B186EF270BFD779A272D7B52727D06B0990E84D358613B5924464CFD9983559AC9B7DD94912D14405E0BBAB681596CFD37A19E406D2623D73C3148A94699940A',
+            work            = 'FCB4E6B3F4DA6EAE',
+            hash            = 'A5A2E431F88574B2A161C92BD53DAFE05B026902A4C3D9FE33F12234CFFF0D03'
+        )
+
+    assert state_block.calculate_hash().hex().upper() == 'A5A2E431F88574B2A161C92BD53DAFE05B026902A4C3D9FE33F12234CFFF0D03'
+    assert state_block.work_valid()
+    assert state_block.to_network_bytes().hex().upper() == network_hex_block
+
+    unpacked_block = Block(type='state')
+    unpacked_block.from_network_bytes(network_hex_block)
+
+    assert unpacked_block.calculate_hash().hex().upper() == 'A5A2E431F88574B2A161C92BD53DAFE05B026902A4C3D9FE33F12234CFFF0D03'
+
+
+if __name__ == '__main__':
+    test_block_state()
 

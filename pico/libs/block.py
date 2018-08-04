@@ -11,18 +11,25 @@ from .account import address_to_verifying_key, address_valid
 POW_THRESHOLD = bytes.fromhex('FFFFFFC000000000')
 GENESIS_HASH = bytes.fromhex('991CF190094C00F0B68E2E5F75F6BEE95A2E0BD93CEAA4A6734DB9F19B728948')
 EMPTY_HASH = '0000000000000000000000000000000000000000000000000000000000000000'
+STATE_BLOCK_PREAMBLE = bytes.fromhex('0000000000000000000000000000000000000000000000000000000000000006')
 
 
 class Block(object):
 
     def __init__(self, type,
-            previous=None, source=None,
+            previous=None,
+            source=None,
             balance=None,
-            destination=None, account=None, representative=None,
-            signature=None, work=None, hash=None,
+            destination=None,
+            account=None,
+            representative=None,
+            link=None,
+            signature=None,
+            work=None,
+            hash=None,
             next=EMPTY_HASH):
         """
-        This Class only stores the 4 types of blocks and their fields.
+        This Class only stores the 5 types of blocks and their fields.
         Verifying key can be calucated from address, it's in the _bytes field. Signing key is not stored here.
         """
 
@@ -33,6 +40,7 @@ class Block(object):
         self.destination    = destination       # (send): destination address of send transaction
         self.account        = account           # (open): address of the open account
         self.representative = representative    # (open/change): address of the representative
+        self.link           = link              # (state): replace source/destination
 
         # call _prepare_block() to convert to bytes
         self._previous_bytes       = None
@@ -41,6 +49,7 @@ class Block(object):
         self._account_bytes        = None
         self._representative_bytes = None
         self._balance_bytes        = None
+        self._link_bytes           = None
 
         self.signature  = signature
         self.work       = work
@@ -105,6 +114,20 @@ class Block(object):
         h.update(self._representative_bytes)
         return h.digest()
 
+    def _calculate_hash_state(self):
+        """
+        Calculate the hash of state block, return bytes.
+        """
+
+        h = blake2b(digest_size=32)
+        h.update(STATE_BLOCK_PREAMBLE)
+        h.update(self._account_bytes)
+        h.update(self._previous_bytes)
+        h.update(self._representative_bytes)
+        h.update(self._balance_bytes)
+        h.update(self._link_bytes)
+        return h.digest()
+
     def _to_verifying_key(self, data):
         """
         Convert data to verifying key if legal, return bytes.
@@ -138,10 +161,11 @@ class Block(object):
         self._destination_bytes = self._to_verifying_key(self.destination)
         self._account_bytes = self._to_verifying_key(self.account)
         self._representative_bytes = self._to_verifying_key(self.representative)
+        self._link_bytes = to_bytes(self.link, 32)
 
         self._signature_bytes = to_bytes(self.signature, 64)
         self._work_bytes = to_bytes(self.work, 8)
-        self._next_bytes = to_bytes(self.work, 32)
+        self._next_bytes = to_bytes(self.next, 32)
 
     def _validate_fields(self):
         """
@@ -162,6 +186,11 @@ class Block(object):
 
         elif self.type == 'change':
             if not (self._previous_bytes and self._representative_bytes):
+                raise Exception('block lack of fields')
+
+        elif self.type == 'state':
+            if not (self._account_bytes and self._previous_bytes and self._representative_bytes
+                    and self._balance_bytes and self._link_bytes):
                 raise Exception('block lack of fields')
 
         else:
@@ -188,6 +217,9 @@ class Block(object):
         elif self.type == 'change':
             self._hash_bytes = self._calculate_hash_change()
 
+        elif self.type == 'state':
+            self._hash_bytes = self._calculate_hash_state()
+
         if self._hash_bytes == GENESIS_HASH:
             self._is_genesis = True
 
@@ -201,7 +233,14 @@ class Block(object):
         else:
             field_bytes = self._previous_bytes
 
-        return self._work_valid(self._work_bytes, field_bytes)
+        # open block
+        if self.type == 'state' and self._previous_bytes.hex() == EMPTY_HASH:
+            field_bytes = self._account_bytes
+
+        reversed_work = bytearray(self._work_bytes)
+        reversed_work.reverse()
+
+        return self._work_valid(self._work_bytes, field_bytes) or self._work_valid(reversed_work, field_bytes)
 
     def _work_valid(self, work_bytes, field_bytes):
         h = blake2b(digest_size=8)
@@ -211,19 +250,24 @@ class Block(object):
         hash_bytes = bytearray(h.digest())
         hash_bytes.reverse()
 
-        return hash_bytes > POW_THRESHOLD
+        return hash_bytes >= POW_THRESHOLD
 
     def generate_work(self):
         """
-        Compute a nonce such that the hash of the nonce concatenated with the field is below a threshold.
+        Compute a nonce such that the hash of the nonce concatenated with the field is above a threshold.
         For open block, the field is the account. For other blocks, the field is the previous block.
         """
 
         self._prepare_block()
+
         if self.type == 'open':
             field_bytes = self._account_bytes
         else:
             field_bytes = self._previous_bytes
+
+        # open block
+        if self.type == 'state' and self._previous_bytes.hex() == EMPTY_HASH:
+            field_bytes = self._account_bytes
 
         i = 0
         work_bytes = os.urandom(8)
@@ -231,7 +275,7 @@ class Block(object):
             i += 1
             work_bytes = os.urandom(8)
 
-        print('guess round for a valid work: %d' % i)
+        print('Guessed %d times until a valid work was found.' % i)
         return work_bytes
 
     def _pack(self):
@@ -262,6 +306,12 @@ class Block(object):
 
         elif self.type == 'change':
             packed_bytes = self._previous_bytes + self._representative_bytes
+
+        elif self.type == 'state':
+            packed_bytes = self._account_bytes + self._previous_bytes + self._representative_bytes + self._balance_bytes + self._link_bytes
+
+        else:
+            raise ValueError('wrong block type: %s' % self.type)
 
         packed_bytes += self._signature_bytes
         packed_bytes += self._work_bytes
@@ -310,6 +360,18 @@ class Block(object):
             self.representative = packed_bytes[32:64]
             self.signature = packed_bytes[64:128]
             self.work = packed_bytes[128:136]
+
+        elif self.type == 'state':
+            if len(packed_bytes) != 216:
+                raise Exception('invalid data length to unpack: %s' % len(packed_bytes))
+
+            self.account        = packed_bytes[0:32]
+            self.previous       = packed_bytes[32:64]
+            self.representative = packed_bytes[64:96]
+            self.balance        = packed_bytes[96:112]
+            self.link           = packed_bytes[112:144]
+            self.signature      = packed_bytes[144:208]
+            self.work           = packed_bytes[208:216]
 
         else:
             raise ValueError('wrong block type: %s' % self.type)

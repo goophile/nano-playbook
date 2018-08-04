@@ -200,7 +200,10 @@ class Network(object):
             peer_list = list(self.peer_set)
             random.shuffle(peer_list)
             peers = peer_list[0:8]
-            peers += [('::', 0)] * (8 - len(peers))  # append zeros to fit 8 peers length
+
+        # May change depend on if keepalive must have 8 peers.
+        peers += [('::', 0)] * (8 - len(peers))  # append zeros to fit 8 peers length
+
         packed_bytes = b''
         for peer in peers:
             ip_bytes = ipaddress.IPv6Address(peer[0]).packed
