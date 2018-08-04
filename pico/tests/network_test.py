@@ -8,11 +8,11 @@ sys.path.insert(0, PROJECT_PATH)
 
 from libs.network import message_encode, message_decode, Network
 
+HEADER = '52430A0A07'
 
 def test_message():
     # 144 bytes of data captured from network
-    receive_block_hex = '''
-    5243050501030003
+    receive_block_hex = HEADER + '''030003
     6B6181C1AC75DAABD30CEAE15D44D30D238198968A5A794E057DC36503120550
     7716EF323E3079CF8BF9E7EFD1C40F60F8DD3251F24D3F455098EEA90A33572E
     3226710D0BD7D3E355F3F1D985AF8BA1B2EB9B346752DEF6F8C14C2C0E91C663A34B3F800E332E48913F7F1F65FF86342490B9C2F97D4FFF50B8F98ACD3DC90F
@@ -25,17 +25,16 @@ def test_message():
     message_bytes = message_encode('publish', 'receive', b'', network_hex_block)
     assert message_bytes.hex().upper() == network_hex_raw
 
-    message_type, block_type, representative_bytes, block_bytes = message_decode(network_hex_raw)
+    message_type, block_type, vote_bytes, block_bytes = message_decode(network_hex_raw)
     assert message_type == 'publish'
     assert block_type == 'receive'
-    assert representative_bytes == b''
+    assert vote_bytes == b''
     assert block_bytes.hex().upper() == network_hex_block
 
 
-def test_message_with_representative():
+def test_message_with_vote():
     # 280 bytes of data captured from network
-    open_block_hex = '''
-    5243050501050004
+    open_block_hex = HEADER + '''050004
     E65294CF9E0192FE2E62E001F61806E7A207CD82B7005120F00EEABA2AC89E00
     440C3C58C57EB163C3ECC833F8CDBC1BA8CEF40DDF665506C9740D4F35E7E3E0FD743EC0371D46A81E6509CC7FEE154097F0AAF8C006FE8D8E47A3E02EADCB0F
     15D9A70400000000
@@ -47,23 +46,22 @@ def test_message_with_representative():
     '''
 
     network_hex_raw = ''.join(open_block_hex.split())
-    network_hex_rep = ''.join(open_block_hex.split()[1:4])
+    network_hex_vote = ''.join(open_block_hex.split()[1:4])
     network_hex_block = ''.join(open_block_hex.split()[4:])
 
-    message_bytes = message_encode('confirm_ack', 'open', network_hex_rep, network_hex_block)
+    message_bytes = message_encode('confirm_ack', 'open', network_hex_vote, network_hex_block)
     assert message_bytes.hex().upper() == network_hex_raw
 
-    message_type, block_type, representative_bytes, block_bytes = message_decode(network_hex_raw)
+    message_type, block_type, vote_bytes, block_bytes = message_decode(network_hex_raw)
     assert message_type == 'confirm_ack'
     assert block_type == 'open'
-    assert representative_bytes.hex().upper() == network_hex_rep
+    assert vote_bytes.hex().upper() == network_hex_vote
     assert block_bytes.hex().upper() == network_hex_block
 
 
 def test_message_keepalive():
     # 152 bytes of data captured from network
-    keepalive_hex = '''
-    5243050501020000
+    keepalive_hex = HEADER + '''020000
     00000000000000000000ffffd57f36480545
     00000000000000000000ffff2578a7a4a31b
     00000000000000000000ffffc7f70194a31b
@@ -80,17 +78,16 @@ def test_message_keepalive():
     message_bytes = message_encode('keepalive', 'invalid', b'', network_hex_block)
     assert message_bytes.hex().upper() == network_hex_raw.upper()
 
-    message_type, block_type, representative_bytes, block_bytes = message_decode(network_hex_raw)
+    message_type, block_type, vote_bytes, block_bytes = message_decode(network_hex_raw)
     assert message_type == 'keepalive'
     assert block_type == 'invalid'
-    assert representative_bytes == b''
+    assert vote_bytes == b''
     assert block_bytes.hex().upper() == network_hex_block.upper()
 
 
 def test_network_pack():
     # 152 bytes of data captured from network
-    keepalive_hex = '''
-    5243050501020000
+    keepalive_hex = HEADER + '''020000
     00000000000000000000ffffd57f36480545
     00000000000000000000ffff2578a7a4a31b
     00000000000000000000ffffc7f70194a31b

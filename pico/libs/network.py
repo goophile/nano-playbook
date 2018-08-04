@@ -19,7 +19,7 @@ PRECONFIGURED_PEERS = [
         ('::ffff:128.199.199.97',  7075, 0, 0),
     ]
 
-# rai/node/common.hpp (85n): enum class message_type : uint8_t
+# rai/node/common.hpp (131n): enum class message_type : uint8_t
 MESSAGE_TYPE_HEX_DICT = {
     '00' : 'invalid',
     '01' : 'not_a_type',
@@ -31,6 +31,7 @@ MESSAGE_TYPE_HEX_DICT = {
     '07' : 'bulk_push',
     '08' : 'frontier_req',
     '09' : 'bulk_pull_blocks',
+    '0A' : 'node_id_handshake',
 }
 
 MESSAGE_TYPE_DICT = {
@@ -44,6 +45,7 @@ MESSAGE_TYPE_DICT = {
     'bulk_push'         : '07',
     'frontier_req'      : '08',
     'bulk_pull_blocks'  : '09',
+    'node_id_handshake' : '0A',
 }
 
 # rai/lib/blocks.hpp (32n): enum class block_type : uint8_t
@@ -54,6 +56,7 @@ BLOCK_TYPE_HEX_DICT = {
     '03' : 'receive',
     '04' : 'open',
     '05' : 'change',
+    '06' : 'state',
 }
 
 BLOCK_TYPE_DICT = {
@@ -63,47 +66,56 @@ BLOCK_TYPE_DICT = {
     'receive'       : '03',
     'open'          : '04',
     'change'        : '05',
+    'state'         : '06',
 }
 
-# rai/node/common.hpp (119n): static std::array<uint8_t, 2> constexpr magic_number
+# rai/node/common.hpp (162n): static std::array<uint8_t, 2> constexpr magic_number
 # rai_test_network: R A (5241)
 # rai_beta_network: R B (5242)
 # rai_live_network: R C (5243)
 MAGIC_A         = '52'  # ascii of 'R'
-MAGIC_B         = '43'  # ascii of 'C'
-VERSION_MAX     = '05'
-VERSION_USING   = '05'
-VERSION_MIN     = '01'
+MAGIC_B_TEST    = '41'  # ascii of 'A'
+MAGIC_B_BETA    = '42'  # ascii of 'B'
+MAGIC_B_LIVE    = '43'  # ascii of 'C'
+VERSION_MAX     = '0A'
+VERSION_USING   = '0A'
+VERSION_MIN     = '07'
+
 EXTENSION       = '00'
 
-_header_hex_example = '52 43 05 05 01 03 00 03'
+_header_hex_example = '52 43 0A 0A 07 03 00 03'
+_header_hex_example = '52430A0A07'
 
 
-LOCAL_HEADER_PREFIX  = [MAGIC_A, MAGIC_B, VERSION_MAX, VERSION_USING, VERSION_MIN, ]
-REPRESENTATIVE_DATA_LEN = 104 # bytes
+LOCAL_HEADER_PREFIX  = [MAGIC_A, MAGIC_B_LIVE, VERSION_MAX, VERSION_USING, VERSION_MIN, ]
+VOTE_DATA_LEN = 104 # bytes
 
 
-def message_encode(message_type, block_type, representative_data, block_data):
+def message_encode(message_type, block_type, vote_data, block_data):
     """
     Encode Block packed data into network message.
-    representative_data may be empty.
+    vote_data may be empty.
     """
-    representative_bytes = to_bytes(representative_data)
+    vote_bytes = to_bytes(vote_data)
     block_bytes = to_bytes(block_data)
 
-    message_type = MESSAGE_TYPE_DICT[message_type]
-    block_type = BLOCK_TYPE_DICT[block_type]
+    message_type = MESSAGE_TYPE_DICT.get(message_type)
+    if not message_type:
+        return b''
+    block_type = BLOCK_TYPE_DICT.get(block_type)
+    if not block_type:
+        return b''
 
     header_hex = ''.join(LOCAL_HEADER_PREFIX + [message_type, EXTENSION, block_type])
     header_bytes = to_bytes(header_hex)
 
-    message_bytes = header_bytes + representative_bytes + block_bytes
+    message_bytes = header_bytes + vote_bytes + block_bytes
     return message_bytes
 
 
 def message_decode(message):
     """
-    Decode network message into representative data and Block packed data.
+    Decode network message into vote data and Block packed data.
     """
     message_bytes = to_bytes(message)
     header_bytes = message_bytes[0:8]
@@ -111,20 +123,24 @@ def message_decode(message):
     header_hex = [int_to_bytes(b, 8).hex() for b in header_bytes]
     (magic_a, magic_b, version_max, version_using, version_min, message_type, extension, block_type) = header_hex
 
-    if magic_a != MAGIC_A or magic_b != MAGIC_B:
+    if magic_a != MAGIC_A or magic_b != MAGIC_B_LIVE:
         return None, None, None, None
 
-    message_type = MESSAGE_TYPE_HEX_DICT[message_type]
-    block_type = BLOCK_TYPE_HEX_DICT[block_type]
+    message_type = MESSAGE_TYPE_HEX_DICT.get(message_type)
+    if not message_type:
+        return None, None, None, None
+    block_type = BLOCK_TYPE_HEX_DICT.get(block_type)
+    if not block_type:
+        return None, None, None, None
 
     if message_type == 'confirm_ack':
-        representative_bytes = message_bytes[8: 8+REPRESENTATIVE_DATA_LEN]
-        block_bytes = message_bytes[8+REPRESENTATIVE_DATA_LEN:]
+        vote_bytes = message_bytes[8: 8+VOTE_DATA_LEN]
+        block_bytes = message_bytes[8+VOTE_DATA_LEN:]
     else:
-        representative_bytes = b''
+        vote_bytes = b''
         block_bytes = message_bytes[8:]
 
-    return message_type, block_type, representative_bytes, block_bytes
+    return message_type, block_type, vote_bytes, block_bytes
 
 
 class Network(object):

@@ -18,11 +18,11 @@ my_verifying_key = signing_to_verifying_key(to_bytes(my_signing_key))
 my_address = verifying_key_to_address(my_verifying_key)
 
 my_account = Account(signing_key='bdc8a8ef58200a401a85c10a9431282a4084f0cc9c527b546fa3aa5cafecbdb4')
+HEADER = '52430A0A07'
 
 
 def test_integration_open(manual=False):
-    open_block_hex = '''
-    5243050501030004
+    open_block_hex = HEADER + '''030004
     78D8D44D421C2C2B0DEE2DEA5DB3EBCA0D5EFED85835A85443FD64B69EB214C8
     AE7AC63990DAAAF2A69BF11C913B928844BF5012355456F2F164166464024B29
     966E5D2EA18F15F56BF18FB095D82C8A1B0F5C13428872A21AB7832B6C6E7F2A

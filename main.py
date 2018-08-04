@@ -37,7 +37,7 @@ def network_receive(session):
             session.update_peers(peers_list)
 
         elif message_type in ['publish', 'confirm_ack', 'confirm_req']:
-            if block_type in ['open', 'receive', 'send', 'change']:
+            if block_type in ['open', 'receive', 'send', 'change', 'state']:
                 block = Block(type=block_type)
             else:
                 print('unkonwn block_type: %s' % block_type)
