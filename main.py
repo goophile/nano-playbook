@@ -27,30 +27,39 @@ def network_receive(session):
     """
 
     while True:
-        block = None
         data = session.receive()
         message_type, block_type, representative_bytes, block_bytes = message_decode(data)
 
         if message_type == 'keepalive':
             peers_list = session.unpack_peers(block_bytes)
-            print('got keepalive peers: %s' % peers_list)
+            print('got keepalive peers...')
             session.update_peers(peers_list)
-
-        elif message_type in ['publish', 'confirm_ack', 'confirm_req']:
-            if block_type in ['open', 'receive', 'send', 'change', 'state']:
-                block = Block(type=block_type)
-            else:
-                print('unkonwn block_type: %s' % block_type)
-        else:
-            print('unkonwn message_type: %s' % message_type)
-
-        if not block:
             continue
 
+        if message_type not in ['publish', 'confirm_ack', 'confirm_req']:
+            print('unkonwn message_type: %s' % message_type)
+            continue
+
+        if block_type in ['open', 'receive', 'send', 'change']:
+            print('obsolete block_type: %s' % block_type)
+            continue
+
+        if block_type != 'state':
+            print('unkonwn block_type: %s' % block_type)
+            continue
+
+        # only handle state blocks
+        block = Block(type=block_type)
         block.from_network_bytes(block_bytes)
         block.hash = block.calculate_hash().hex()
-        print('block hash: %s, work valid: %s, block type: %s' %
-              (block.hash, block.work_valid(), block.type))
+        account = Account(address=block.account)
+
+        print('account: {account}, block hash: {hash}, work valid: {work}, signature valid: {signature}'.format(
+                account=account.xrb_address,
+                hash=block.hash,
+                work=block.work_valid(),
+                signature=account.signature_valid(block.hash, block.signature)
+            ))
 
 
 def network_keepalive(session):

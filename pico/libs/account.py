@@ -30,11 +30,20 @@ class Account(object):
 
         self._is_genesis = False
 
+        self._prepare_account()
+
     def __str__(self):
         """
         Reture a readable address.
         """
-        self._prepare_account()
+        return self.xrb_address
+
+    @property
+    def address_valid(self):
+        return address_valid(self.address)
+
+    @property
+    def xrb_address(self):
         return verifying_key_to_address(self._verifying_key_bytes)
 
     def _to_signing_key(self, data):
@@ -98,7 +107,7 @@ class Account(object):
         """
         Return the signature of a hash.
         """
-        self._prepare_account()
+
         if not self._signing_key_bytes:
             raise Exception('can not sign block since signing_key is not given')
 
@@ -111,7 +120,7 @@ class Account(object):
         """
         Use verifying key to verify block hash and the signature, return True or False
         """
-        self._prepare_account()
+
         if not self._verifying_key_bytes:
             raise Exception('can not verify block since verifying_key or address is not given')
 
