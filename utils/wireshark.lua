@@ -1,45 +1,74 @@
 -- Nano/RaiBlocks Protocol Wireshark Dissector
+-- Note: Wireshark already supports Nano from version 2.6.2, it's much faster than this lua script.
 -- Usage: $ wireshark -X lua_script:wireshark.lua nano.cap
+
+
+function state_dissector_328(buffer, subtree)
+    subtree = subtree:add(buffer(8, 320), "State Block")
+    -- print(buffer(8, 16), buffer(24, 16))
+    subtree:add(buffer(8,   32),  "Vote Account: "              .. buffer(8,   32))
+    subtree:add(buffer(40,  64),  "Vote Signature: "            .. buffer(40,  64))
+    subtree:add(buffer(104, 8 ),  "Vote Sequence: "             .. buffer(104, 8 ))
+    subtree:add(buffer(112, 32),  "Account: "                   .. buffer(112, 32))
+    subtree:add(buffer(144, 32),  "Hash of Previous Block: "    .. buffer(144, 32))
+    subtree:add(buffer(176, 32),  "Representative Account: "    .. buffer(176, 32))
+    subtree:add(buffer(208, 16),  "Balance: "                   .. buffer(208, 16))
+    subtree:add(buffer(224, 32),  "Link: "                      .. buffer(224, 32))
+    subtree:add(buffer(256, 64),  "Signature: "                 .. buffer(256, 64))
+    subtree:add(buffer(320, 8 ),  "Work: "                      .. buffer(320, 8 ))
+end
 
 
 function open_dissector_280(buffer, subtree)
     subtree = subtree:add(buffer(8, 272), "Open Block")
     -- print(buffer(8, 16), buffer(24, 16))
-    subtree:add(buffer(8,   32),  "Representative?: "               .. buffer(8,   32))
-    subtree:add(buffer(40,  64),  "Representative Signature?: "     .. buffer(40,  64))
-    subtree:add(buffer(104, 8 ),  "Unknown Magic Number?: "         .. buffer(104, 8 ))
-    subtree:add(buffer(112, 32),  "Hash of Source Block: "          .. buffer(112, 32))
-    subtree:add(buffer(144, 32),  "Representative Account: "        .. buffer(144, 32))
-    subtree:add(buffer(176, 32),  "Open Account: "                  .. buffer(176, 32))
-    subtree:add(buffer(208, 64),  "Signature: "                     .. buffer(208, 64))
-    subtree:add(buffer(272, 8 ),  "Work: "                          .. buffer(272, 8 ))
+    subtree:add(buffer(8,   32),  "Vote Account: "              .. buffer(8,   32))
+    subtree:add(buffer(40,  64),  "Vote Signature: "            .. buffer(40,  64))
+    subtree:add(buffer(104, 8 ),  "Vote Sequence: "             .. buffer(104, 8 ))
+    subtree:add(buffer(112, 32),  "Hash of Source Block: "      .. buffer(112, 32))
+    subtree:add(buffer(144, 32),  "Representative Account: "    .. buffer(144, 32))
+    subtree:add(buffer(176, 32),  "Open Account: "              .. buffer(176, 32))
+    subtree:add(buffer(208, 64),  "Signature: "                 .. buffer(208, 64))
+    subtree:add(buffer(272, 8 ),  "Work: "                      .. buffer(272, 8 ))
 end
 
 
 function send_dissector_264(buffer, subtree)
     subtree = subtree:add(buffer(8, 256), "Send Block")
     -- print(buffer(8, 16), buffer(24, 16))
-    subtree:add(buffer(8,   32),  "Representative?: "               .. buffer(8,   32))
-    subtree:add(buffer(40,  64),  "Representative Signature?: "     .. buffer(40,  64))
-    subtree:add(buffer(104, 8 ),  "Unknown Magic Number?: "         .. buffer(104, 8 ))
-    subtree:add(buffer(112, 32),  "Hash of Previous Block: "        .. buffer(112, 32))
-    subtree:add(buffer(144, 32),  "Destination Account: "           .. buffer(144, 32))
-    subtree:add(buffer(176, 16),  "Balance: "                       .. buffer(176, 16))
-    subtree:add(buffer(192, 64),  "Signature: "                     .. buffer(192, 64))
-    subtree:add(buffer(256, 8 ),  "Work: "                          .. buffer(256, 8 ))
+    subtree:add(buffer(8,   32),  "Vote Account: "              .. buffer(8,   32))
+    subtree:add(buffer(40,  64),  "Vote Signature: "            .. buffer(40,  64))
+    subtree:add(buffer(104, 8 ),  "Vote Sequence: "             .. buffer(104, 8 ))
+    subtree:add(buffer(112, 32),  "Hash of Previous Block: "    .. buffer(112, 32))
+    subtree:add(buffer(144, 32),  "Destination Account: "       .. buffer(144, 32))
+    subtree:add(buffer(176, 16),  "Balance: "                   .. buffer(176, 16))
+    subtree:add(buffer(192, 64),  "Signature: "                 .. buffer(192, 64))
+    subtree:add(buffer(256, 8 ),  "Work: "                      .. buffer(256, 8 ))
 end
 
 
 function receive_dissector_248(buffer, subtree)
     subtree = subtree:add(buffer(8, 240), "Receive Block")
     -- print(buffer(8, 16), buffer(24, 16))
-    subtree:add(buffer(8,   32),  "Representative?: "               .. buffer(8,   32))
-    subtree:add(buffer(40,  64),  "Representative Signature?: "     .. buffer(40,  64))
-    subtree:add(buffer(104, 8 ),  "Unknown Magic Number?: "         .. buffer(104, 8 ))
-    subtree:add(buffer(112, 32),  "Hash of Previous Block: "        .. buffer(112, 32))
-    subtree:add(buffer(144, 32),  "Hash of Source Block: "          .. buffer(144, 32))
-    subtree:add(buffer(176, 64),  "Signature: "                     .. buffer(176, 64))
-    subtree:add(buffer(240, 8 ),  "Work: "                          .. buffer(240, 8 ))
+    subtree:add(buffer(8,   32),  "Vote Account: "              .. buffer(8,   32))
+    subtree:add(buffer(40,  64),  "Vote Signature: "            .. buffer(40,  64))
+    subtree:add(buffer(104, 8 ),  "Vote Sequence: "             .. buffer(104, 8 ))
+    subtree:add(buffer(112, 32),  "Hash of Previous Block: "    .. buffer(112, 32))
+    subtree:add(buffer(144, 32),  "Hash of Source Block: "      .. buffer(144, 32))
+    subtree:add(buffer(176, 64),  "Signature: "                 .. buffer(176, 64))
+    subtree:add(buffer(240, 8 ),  "Work: "                      .. buffer(240, 8 ))
+end
+
+
+function state_dissector_224(buffer, subtree)
+    subtree = subtree:add(buffer(8, 216), "State Block")
+    subtree:add(buffer(8,   32),  "Account: "                   .. buffer(8,   32))
+    subtree:add(buffer(40,  32),  "Hash of Previous Block: "    .. buffer(40,  32))
+    subtree:add(buffer(72,  32),  "Representative Account: "    .. buffer(72,  32))
+    subtree:add(buffer(104, 16),  "Balance: "                   .. buffer(104, 16))
+    subtree:add(buffer(120, 32),  "Link: "                      .. buffer(120, 32))
+    subtree:add(buffer(152, 64),  "Signature: "                 .. buffer(152, 64))
+    subtree:add(buffer(216, 8 ),  "Work: "                      .. buffer(216, 8))
 end
 
 
@@ -106,15 +135,19 @@ function nano_proto.dissector(buffer, pinfo, tree)
     -- rai/core_test/message.cpp (53n)
     -- rai/node/common.cpp (11n)
     header_tree = subtree:add(buffer(0, 8), "Header")
-    header_tree:add(buffer(0, 2), "Stream?: "           .. buffer(0, 2))
+    header_tree:add(buffer(0, 2), "Magic Number: "      .. buffer(0, 2))
     header_tree:add(buffer(2, 1), "Version Max: "       .. buffer(2, 1))
     header_tree:add(buffer(3, 1), "Version Using: "     .. buffer(3, 1))
     header_tree:add(buffer(4, 1), "Version Min: "       .. buffer(4, 1))
     header_tree:add(buffer(5, 1), "Message Type: "      .. buffer(5, 1))  -- rai/node/common.hpp (85n): enum class message_type : uint8_t
-    header_tree:add(buffer(6, 1), "Extensions?: "       .. buffer(6, 1))
+    header_tree:add(buffer(6, 1), "Extensions: "        .. buffer(6, 1))
     header_tree:add(buffer(7, 1), "Block Type: "        .. buffer(7, 1))  -- rai/lib/blocks.hpp (32n): enum class block_type : uint8_t
 
-    if buf_len == 280 then
+
+    if buf_len == 328 then
+        pinfo.cols.protocol = "Nano State"
+        state_dissector_328(buffer, subtree)
+    elseif buf_len == 280 then
         pinfo.cols.protocol = "Nano Open"
         open_dissector_280(buffer, subtree)
     elseif buf_len == 264 then
@@ -123,6 +156,9 @@ function nano_proto.dissector(buffer, pinfo, tree)
     elseif buf_len == 248 then
         pinfo.cols.protocol = "Nano Receive"
         receive_dissector_248(buffer, subtree)
+    elseif buf_len == 224 then
+        pinfo.cols.protocol = "Nano State"
+        state_dissector_224(buffer, subtree)
     elseif buf_len == 176 then
         pinfo.cols.protocol = "Nano Open"
         open_dissector_176(buffer, subtree)
